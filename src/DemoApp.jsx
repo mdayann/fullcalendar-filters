@@ -3,12 +3,16 @@ import FullCalendar, { formatDate } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { INITIAL_EVENTS, createEventId } from "./event-utils";
+import { createEventId } from "./event-utils";
 
 export default class DemoApp extends React.Component {
   state = {
     weekendsVisible: true,
-    currentEvents: []
+    currentEvents: [
+      { id: 1, title: 'Event 1', date: '2021-03-02', category: 'meeting' },
+      { id: 2, title: 'Event 2', date: '2021-03-02', category: 'email' }
+    ],
+    categories: ['email','meeting']
   };
 
   render() {
@@ -28,17 +32,11 @@ export default class DemoApp extends React.Component {
             selectable={true}
             selectMirror={true}
             dayMaxEvents={true}
-            weekends={this.state.weekendsVisible}
-            initialEvents={INITIAL_EVENTS} // alternatively, use the `events` setting to fetch from a feed
+            weekends={this.state.weekendsVisible} // alternatively, use the `events` setting to fetch from a feed
             select={this.handleDateSelect}
             eventContent={renderEventContent} // custom render function
             eventClick={this.handleEventClick}
-            eventsSet={this.handleEvents} // called after events are initialized/added/changed/removed
-            /* you can update a remote database when these fire:
-            eventAdd={function(){}}
-            eventChange={function(){}}
-            eventRemove={function(){}}
-            */
+            events={this.state.currentEvents}
           />
         </div>
       </div>
@@ -66,12 +64,38 @@ export default class DemoApp extends React.Component {
             toggle weekends
           </label>
         </div>
+        {this.checkBoxEvents}
+        <div className="demo-app-sidebar-section">
+          <form>
+        {
+          this.state.categories.map( (category,i) => {
+             return(
+              <label key={i}>
+                <input type="checkbox" onChange={this.handleCheckEvent} value={category}/> {category} <br></br>
+              </label>
+             )
+          })
+        }
+         </form>
+        </div>
         <div className="demo-app-sidebar-section">
           <h2>All Events ({this.state.currentEvents.length})</h2>
           <ul>{this.state.currentEvents.map(renderSidebarEvent)}</ul>
         </div>
       </div>
     );
+  }
+
+  handleCheckEvent = (event) => {
+    const selectedCategory = []
+    const { currentEvents } = this.state
+    selectedCategory.push(event.target.value)
+
+    const filteredCategory = Object.keys(currentEvents).reduce((r, e) => {
+      if (selectedCategory.includes(currentEvents[e])) r[e] = currentEvents[e]
+      return r
+    }, {});
+    console.log(filteredCategory);
   }
 
   handleWeekendsToggle = () => {
@@ -118,14 +142,13 @@ function renderEventContent(eventInfo) {
   return (
     <>
       <i>{eventInfo.event.title}</i>
-      <p>{eventInfo.event.category}</p>
     </>
   );
 }
 
 function renderSidebarEvent(event) {
   return (
-    <li key={event.id}>
+    <li key={event.title}>
       <b>
         {formatDate(event.start, {
           year: "numeric",
