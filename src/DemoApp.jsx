@@ -1,18 +1,29 @@
-import React from "react";
-import FullCalendar, { formatDate } from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import { createEventId } from "./event-utils";
+import React from 'react';
+import FullCalendar, { formatDate } from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 
 export default class DemoApp extends React.Component {
+  componentDidMount() {
+    localStorage.setItem('allEvents', JSON.stringify(this.state.currentEvents));
+  }
+
+  todayStr = new Date().toISOString().replace(/T.*$/, ''); // YYYY-MM-DD of today
+
   state = {
     weekendsVisible: true,
     currentEvents: [
-      { id: 1, title: 'Event 1', date: '2021-03-02', category: 'meeting' },
-      { id: 2, title: 'Event 2', date: '2021-03-02', category: 'email' }
+      { id: 1, title: 'Event 1', start: this.todayStr, category: 'meeting' },
+      { id: 2, title: 'Event 2', start: this.todayStr, category: 'email' },
+      {
+        id: 2,
+        title: 'Event 3',
+        start: this.todayStr + 'T18:00:00',
+        category: 'email',
+      },
     ],
-    categories: ['email','meeting']
+    categories: ['email', 'meeting'],
   };
 
   render() {
@@ -23,9 +34,9 @@ export default class DemoApp extends React.Component {
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay"
+              left: 'prev,next today',
+              center: 'title',
+              right: 'dayGridMonth,timeGridWeek,timeGridDay',
             }}
             initialView="dayGridMonth"
             editable={true}
@@ -61,22 +72,24 @@ export default class DemoApp extends React.Component {
               checked={this.state.weekendsVisible}
               onChange={this.handleWeekendsToggle}
             ></input>
-            toggle weekends
+            Toggle weekends
           </label>
         </div>
-        {this.checkBoxEvents}
         <div className="demo-app-sidebar-section">
           <form>
-        {
-          this.state.categories.map( (category,i) => {
-             return(
-              <label key={i}>
-                <input type="checkbox" onChange={this.handleCheckEvent} value={category}/> {category} <br></br>
-              </label>
-             )
-          })
-        }
-         </form>
+            {this.state.categories.map((category, i) => {
+              return (
+                <label key={i}>
+                  <input
+                    type="checkbox"
+                    onChange={this.handleCheckEvent}
+                    value={category}
+                  />{' '}
+                  {this.functionCapitalize(category)} <br></br>
+                </label>
+              );
+            })}
+          </form>
         </div>
         <div className="demo-app-sidebar-section">
           <h2>All Events ({this.state.currentEvents.length})</h2>
@@ -86,26 +99,48 @@ export default class DemoApp extends React.Component {
     );
   }
 
-  handleCheckEvent = (event) => {
-    const selectedCategory = []
-    const { currentEvents } = this.state
-    selectedCategory.push(event.target.value)
-
-    const filteredCategory = Object.keys(currentEvents).reduce((r, e) => {
-      if (selectedCategory.includes(currentEvents[e])) r[e] = currentEvents[e]
-      return r
-    }, {});
-    console.log(filteredCategory);
+  functionCapitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1).toLowerCase();
   }
+
+  handleCheckEvent = (event) => {
+    const { currentEvents } = this.state;
+    if (event.target.checked) {
+      const selectedCategory = [];
+
+      selectedCategory.push(event.target.value);
+
+      Object.filter = (obj, predicate) =>
+        Object.keys(obj)
+          .filter((key) => predicate(obj[key]))
+          .reduce((res, key) => ((res[key] = obj[key]), res), {});
+
+      const eventsFiltered = Object.filter(
+        currentEvents,
+        (event) => event.category == selectedCategory
+      );
+
+      const selectedEvents = Object.values(eventsFiltered);
+      this.setState({
+        currentEvents: selectedEvents,
+      });
+      console.log(this.state.currentEvents);
+    } else {
+      const storedEvents = JSON.parse(localStorage.getItem('allEvents'));
+      this.setState({
+        currentEvents: storedEvents,
+      });
+    }
+  };
 
   handleWeekendsToggle = () => {
     this.setState({
-      weekendsVisible: !this.state.weekendsVisible
+      weekendsVisible: !this.state.weekendsVisible,
     });
   };
 
   handleDateSelect = (selectInfo) => {
-    let title = prompt("Please enter a new title for your event");
+    let title = prompt('Please enter a new title for your event');
     let calendarApi = selectInfo.view.calendar;
 
     calendarApi.unselect(); // clear date selection
@@ -113,10 +148,10 @@ export default class DemoApp extends React.Component {
     if (title) {
       calendarApi.addEvent({
         id: createEventId(),
-        title,
+        title: title,
         start: selectInfo.startStr,
         end: selectInfo.endStr,
-        allDay: selectInfo.allDay
+        allDay: selectInfo.allDay,
       });
     }
   };
@@ -133,15 +168,20 @@ export default class DemoApp extends React.Component {
 
   handleEvents = (events) => {
     this.setState({
-      currentEvents: events
+      currentEvents: events,
     });
   };
 }
 
 function renderEventContent(eventInfo) {
+  const category = eventInfo.event._def.extendedProps.category;
+  console.log(eventInfo);
   return (
     <>
+      <b>{eventInfo.timeText}</b>
       <i>{eventInfo.event.title}</i>
+      &nbsp;
+      <i>{category}</i>
     </>
   );
 }
@@ -151,9 +191,9 @@ function renderSidebarEvent(event) {
     <li key={event.title}>
       <b>
         {formatDate(event.start, {
-          year: "numeric",
-          month: "short",
-          day: "numeric"
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
         })}
       </b>
       <i>{event.title}</i>
